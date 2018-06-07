@@ -1,5 +1,5 @@
 {
-  "name": "dygraphs",
+  "name": "@qogni/dygraphs",
   "version": "2.1.0",
   "description": "dygraphs is a fast, flexible open source JavaScript charting library.",
   "main": "index.es5",
@@ -15,7 +15,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/danvk/dygraphs.git"
+    "url": "git://github.com/Qogni/dygraphs.git"
   },
   "keywords": [
     "dygraphs",
