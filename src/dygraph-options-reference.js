@@ -821,6 +821,12 @@ OPTIONS_REFERENCE =  // <JSON>
     "labels": ["Data"],
     "type": "Dygraph.DataHandler",
     "description": "Custom DataHandler. This is an advanced customization. See http://bit.ly/151E7Aq."
+  },
+  "gapThreshold": {
+    "default": "Infinity",
+    "labels": ["Data Line display"],
+    "type": "integer",
+    "description": "If one point more distant from the last one by this value, the line will not be drawn."
   }
 }
 ;  // </JSON>
