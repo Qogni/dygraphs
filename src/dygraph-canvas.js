@@ -176,6 +176,7 @@ DygraphCanvasRenderer._drawStyledLine = function(e,
 DygraphCanvasRenderer._drawSeries = function(e,
     iter, strokeWidth, pointSize, drawPoints, drawGapPoints, stepPlot, color) {
 
+  var prevPoint = null;
   var prevCanvasX = null;
   var prevCanvasY = null;
   var nextCanvasY = null;
@@ -183,6 +184,7 @@ DygraphCanvasRenderer._drawSeries = function(e,
   var point; // the point being processed in the while loop
   var pointsOnLine = []; // Array of [canvasx, canvasy] pairs.
   var first = true; // the first cycle through the while loop
+  var gapThreshold = e.dygraph.getOption("gapThreshold", e.setName);
 
   var ctx = e.drawingContext;
   ctx.beginPath();
@@ -241,7 +243,11 @@ DygraphCanvasRenderer._drawSeries = function(e,
             ctx.lineTo(point.canvasx, prevCanvasY);
           }
 
-          ctx.lineTo(point.canvasx, point.canvasy);
+          if (gapThreshold && point.xval - prevPoint.xval >= gapThreshold) {
+            ctx.moveTo(point.canvasx, point.canvasy);
+          } else {
+            ctx.lineTo(point.canvasx, point.canvasy);
+          }
         }
       } else {
         ctx.moveTo(point.canvasx, point.canvasy);
@@ -249,6 +255,7 @@ DygraphCanvasRenderer._drawSeries = function(e,
       if (drawPoints || isIsolated) {
         pointsOnLine.push([point.canvasx, point.canvasy, point.idx]);
       }
+      prevPoint = point
       prevCanvasX = point.canvasx;
       prevCanvasY = point.canvasy;
     }
