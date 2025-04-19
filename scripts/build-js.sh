@@ -9,7 +9,7 @@ set -e
 set -o pipefail
 if [[ -e node_modules ]]; then
 	# NPM setup
-	babel_js=babel
+	babel_js="node --stack-size=8192 node_modules/.bin/babel"
 else
 	# Debian packaging
 	babel_js=babeljs
