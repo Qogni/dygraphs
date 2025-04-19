@@ -29,9 +29,9 @@
   "author": "Dan Vanderkam (danvdk@gmail.com)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/danvk/dygraphs/issues"
+    "url": "https://github.com/Qogni/dygraphs/issues"
   },
-  "homepage": "https://github.com/danvk/dygraphs",
+  "homepage": "https://github.com/Qogni/dygraphs",
   "devDependencies": {
     "@babel/cli": "^7.19.3",
     "@babel/core": "^7.20.2",
