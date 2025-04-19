@@ -12,7 +12,8 @@
     "index.es5.js",
     "index.js",
     "src",
-    "src-es5"
+    "src-es5",
+    "types"
   ],
   "repository": {
     "type": "git",
