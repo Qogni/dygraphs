@@ -854,8 +854,8 @@ OPTIONS_REFERENCE =  // <JSON>
     "gapThreshold": {
         "default": "Infinity",
         "labels": ["Data Line display"],
-        "type": "integer",
-        "description": "If one point more distant from the last one by this value, the line will not be drawn."
+        "type": "integer or function(prevPoint, point) → boolean",
+        "description": "If this function returns false, the gap between two points will not be drawn. If an integer is specified, the X-axis of prevPoint will be compared to the X-axis of point and if more or equal than the provided integer, a line will not be drawn."
     }
 }
 ;  // </JSON>
