@@ -5,6 +5,7 @@
   "main": "index.es5",
   "module": "index",
   "jsnext:main": "index",
+  "types": "types/index.d.ts",
   "files": [
     "_site",
     "dist",
