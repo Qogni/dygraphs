@@ -151,9 +151,23 @@ DygraphCanvasRenderer._drawStyledLine = function(e,
   if (stroking) {
     if (ctx.setLineDash) ctx.setLineDash(strokePattern);
   }
+  var gapThreshold = e.dygraph.getOption("gapThreshold", e.setName);
+  var gapThresholdFunc = function(prevPoint, curPoint) {
+    return false;
+  };
+
+  if (gapThreshold) {
+    if (typeof gapThreshold == 'number') {
+      gapThresholdFunc = function (prevPoint, point) {
+        return (point.xval - prevPoint.xval) >= gapThreshold;
+      };
+    } else if (typeof gapThreshold == 'function') {
+      gapThresholdFunc = gapThreshold;
+    }
+  }
 
   var pointsOnLine = DygraphCanvasRenderer._drawSeries(
-      e, iter, strokeWidth, pointSize, drawPoints, drawGapPoints, stepPlot, color);
+      e, iter, strokeWidth, pointSize, drawPoints, drawGapPoints, stepPlot, color, gapThresholdFunc);
   DygraphCanvasRenderer._drawPointsOnLine(
       e, pointsOnLine, drawPointCallback, color, pointSize);
 
@@ -173,7 +187,7 @@ DygraphCanvasRenderer._drawStyledLine = function(e,
  * @private
  */
 DygraphCanvasRenderer._drawSeries = function(e,
-    iter, strokeWidth, pointSize, drawPoints, drawGapPoints, stepPlot, color) {
+    iter, strokeWidth, pointSize, drawPoints, drawGapPoints, stepPlot, color, gapThresholdFunc) {
 
   var prevPoint = null;
   var prevCanvasX = null;
@@ -183,7 +197,6 @@ DygraphCanvasRenderer._drawSeries = function(e,
   var point; // the point being processed in the while loop
   var pointsOnLine = []; // Array of [canvasx, canvasy] pairs.
   var first = true; // the first cycle through the while loop
-  var gapThreshold = e.dygraph.getOption("gapThreshold", e.setName);
 
   var ctx = e.drawingContext;
   ctx.beginPath();
@@ -242,7 +255,7 @@ DygraphCanvasRenderer._drawSeries = function(e,
             ctx.lineTo(point.canvasx, prevCanvasY);
           }
 
-          if (gapThreshold && point.xval - prevPoint.xval >= gapThreshold) {
+          if (gapThresholdFunc(prevPoint, point)) {
             ctx.moveTo(point.canvasx, point.canvasy);
           } else {
             ctx.lineTo(point.canvasx, point.canvasy);
