@@ -17,3 +17,5 @@ node_modules
 package-lock.json
 site
 src-es5/
+.idea/
+.DS_Store
