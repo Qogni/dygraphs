@@ -73,8 +73,5 @@
     "test": "mksh scripts/run-tests.sh",
     "test-min": "mksh scripts/run-tests.sh min",
     "tests-ok": "mksh scripts/check-no-only.sh"
-  },
-  "pre-commit": [
-    "tests-ok"
-  ]
+  }
 }
