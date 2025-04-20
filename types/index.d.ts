@@ -115,6 +115,8 @@ export namespace dygraphs {
          */
         fillGraph?: boolean | null | undefined;
 
+        gapThreshold?: ((prevPoint: Point, curPoint: Point) => boolean) | number;
+
         /**
          * The size in pixels of the dot drawn over highlighted points.
          * @default 3
@@ -190,11 +192,11 @@ export namespace dygraphs {
          */
         axisLabelFormatter?:
             | ((
-                v: number | Date,
-                granularity: number,
-                opts: (name: string) => any,
-                dygraph: Readonly<Dygraph>,
-            ) => string)
+            v: number | Date,
+            granularity: number,
+            opts: (name: string) => any,
+            dygraph: Readonly<Dygraph>,
+        ) => string)
             | null
             | undefined;
 
@@ -325,13 +327,13 @@ export namespace dygraphs {
          */
         valueFormatter?:
             | ((
-                v: number,
-                opts: (name: string) => any,
-                seriesName: string,
-                dygraph: Readonly<Dygraph>,
-                row: number,
-                col: number,
-            ) => string)
+            v: number,
+            opts: (name: string) => any,
+            seriesName: string,
+            dygraph: Readonly<Dygraph>,
+            row: number,
+            col: number,
+        ) => string)
             | null
             | undefined;
 
@@ -510,7 +512,7 @@ export namespace dygraphs {
          * @see http://bit.ly/151E7Aq.
          * @default (depends on data)
          */
-        dataHandler?: DataHandler | null | undefined;
+        dataHandler?: DataHandlerConstructor | null | undefined;
 
         /**
          * Initially zoom in on a section of the graph. Is of the form [earliest, latest], where
@@ -576,15 +578,15 @@ export namespace dygraphs {
          */
         drawHighlightPointCallback?:
             | ((
-                this: Readonly<Dygraph>,
-                dygraph: Readonly<Dygraph>,
-                seriesName: string,
-                canvasContext: CanvasRenderingContext2D,
-                cx: number,
-                cy: number,
-                color: string,
-                pointSize: number,
-            ) => void)
+            this: Readonly<Dygraph>,
+            dygraph: Readonly<Dygraph>,
+            seriesName: string,
+            canvasContext: CanvasRenderingContext2D,
+            cx: number,
+            cy: number,
+            color: string,
+            pointSize: number,
+        ) => void)
             | null
             | undefined;
 
@@ -596,15 +598,15 @@ export namespace dygraphs {
          */
         drawPointCallback?:
             | ((
-                this: Readonly<Dygraph>,
-                dygraph: Readonly<Dygraph>,
-                seriesName: string,
-                canvasContext: CanvasRenderingContext2D,
-                cx: number,
-                cy: number,
-                color: string,
-                pointSize: number,
-            ) => void)
+            this: Readonly<Dygraph>,
+            dygraph: Readonly<Dygraph>,
+            seriesName: string,
+            canvasContext: CanvasRenderingContext2D,
+            cx: number,
+            cy: number,
+            color: string,
+            pointSize: number,
+        ) => void)
             | null
             | undefined;
 
@@ -1087,6 +1089,8 @@ export namespace dygraphs {
         yval_plus?: number | undefined;
         yval_stacked?: number | undefined;
         yval?: number | undefined;
+        canvasx?: number | undefined;
+        canvasy?: number | undefined;
     }
 
     interface Annotation {
@@ -1149,6 +1153,46 @@ export namespace dygraphs {
     }
 
     type Axis = "x" | "y" | "y2";
+
+    interface DygraphEvent {
+        readonly dygraph: Dygraph
+        cancelable: boolean
+        readonly defaultPrevented: boolean
+        preventDefault(): void
+        readonly propagationStopped: boolean
+        stopPropagation(): void
+    }
+
+    type DataWillUpdateHandler = (e: DygraphEvent) => void;
+    type PredrawHandler = (e: DygraphEvent) => void;
+
+    interface PluginHandlers {
+        dataWillUpdate?: DataWillUpdateHandler;
+        layout?: (e: any) => void;
+        predraw?: PredrawHandler;
+        didDrawChart?: (e: any) => void;
+    }
+
+    interface DygraphsPlugin {
+        activate(dygraphs: Dygraph): PluginHandlers;
+    }
+
+    interface DygraphsFunctionPlugin<T extends DygraphsPlugin = DygraphsPlugin> {
+        new(): T
+        prototype: T;
+    }
+
+    interface RangeSelectorPluginPrototype extends DygraphsPlugin {
+        dygraph_: Dygraph
+        computeCombinedSeriesAndLimits_(): { data: any, yMin: number, yMax: number }
+    }
+
+    type RangeSelectorPlugin = DygraphsFunctionPlugin<RangeSelectorPluginPrototype>
+
+    interface DygraphsFunctionDataHandler<T extends DataHandler = DataHandler> {
+        new(): T
+        prototype: T;
+    }
 }
 
 export default class Dygraph {
@@ -1161,6 +1205,29 @@ export default class Dygraph {
         data: dygraphs.Data | (() => dygraphs.Data),
         options?: dygraphs.Options | null,
     );
+
+    public rawData_: any[];
+    public dateWindow_: [number, number];
+
+    static Plugins: {
+        Legend: dygraphs.DygraphsFunctionPlugin,
+        Axes: dygraphs.DygraphsFunctionPlugin,
+        Annotations: dygraphs.DygraphsFunctionPlugin,
+        ChartLabels: dygraphs.DygraphsFunctionPlugin,
+        Grid: dygraphs.DygraphsFunctionPlugin,
+        RangeSelector: dygraphs.RangeSelectorPlugin,
+    }
+
+    static PLUGINS: dygraphs.DygraphsFunctionPlugin[];
+
+    static DataHandlers: {
+        DefaultHandler: dygraphs.DygraphsFunctionDataHandler,
+        BarsHandler: dygraphs.DygraphsFunctionDataHandler,
+        CustomBarsHandler: dygraphs.DygraphsFunctionDataHandler,
+        DefaultFractionHandler: dygraphs.DygraphsFunctionDataHandler,
+        ErrorBarsHandler: dygraphs.DygraphsFunctionDataHandler,
+        FractionsBarsHandle: dygraphs.DygraphsFunctionDataHandler,
+    }
 
     /**
      * Returns the zoomed status of the chart for one or both axes.
