@@ -632,6 +632,11 @@ rangeSelector.prototype.computeCombinedSeriesAndLimits_ = function() {
 
   // Select series to combine. By default, all series are combined.
   var numColumns = g.numColumns();
+
+  if (numColumns === 0) {
+    return { data: [], yMin: 0, yMax: 1 };
+  }
+
   var labels = g.getLabels();
   var includeSeries = new Array(numColumns);
   var anySet = false;
