@@ -512,7 +512,7 @@ export namespace dygraphs {
          * @see http://bit.ly/151E7Aq.
          * @default (depends on data)
          */
-        dataHandler?: DataHandlerConstructor | null | undefined;
+        dataHandler?: DataHandler | null | undefined;
 
         /**
          * Initially zoom in on a section of the graph. Is of the form [earliest, latest], where
