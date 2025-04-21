@@ -27,13 +27,21 @@ export namespace dygraphs {
 
     type AnnotationMouseOverHandler = AnnotationClickHandler;
 
+    interface Layout {
+        /**
+         * Returns the box which the chart should be drawn in. This is the canvas's
+         * box, less space needed for the axis and chart labels.
+         */
+        getPlotArea(): { x: number; y: number; w: number; h: number };
+    }
+
     interface DataHandler {
         /**
          * The extract series method is responsible for extracting a single series data from the
          * general data array. It must return the series in the unified data format. It may or may not
          * add extras for later usage.
          */
-        extractSeries(dygraph: Readonly<Dygraph>, rawData: any, seriesIndex: any): any;
+        extractSeries(rawData: any, seriesIndex: any, options: Options): any;
 
         /**
          * The rolling average method is called if the rollPeriod is larger than
@@ -41,7 +49,7 @@ export namespace dygraphs {
          *    must return an array that is again compliant with the unified data format. Extras may be
          *    used if needed.
          */
-        rollingAverage(dygraph: Readonly<Dygraph>, unifiedData: any, rollPeriod: any): any;
+        rollingAverage(unifiedData: any, rollPeriod: number, options: Options, seriesIndex: number): any;
 
         /**
          * This method computes the extremes of the supplied rolledData. It may be pruned compared to
@@ -49,16 +57,16 @@ export namespace dygraphs {
          * returned from it. The given dateWindow must be considered for the computation of the
          * extreme values. Extras may be used if needed.
          */
-        getExtremeYValues(dygraph: Readonly<Dygraph>, unifiedData: any, dateWindow: any): any;
+        getExtremeYValues(unifiedData: any, dateWindow: any, step: boolean): any;
 
         /**
-         * Based on the provided x and y values, seriesPoints for each sample of a series are created.
-         * This additional callback is called for every seriesPoint created. The original
-         * unifiedDataSample is also given so that additional extras may be extracted and added to the
-         * seriesPoint. (e.g. the DataHandlers for bars add y_top and y_bottom here which is needed to
-         * draw the error bars.)
+         * Callback called for each series after the series points have been generated
+         * which will later be used by the plotters to draw the graph.
+         * Here data may be added to the seriesPoints which is needed by the plotters.
+         * The indexes of series and points are in sync meaning the original data
+         * sample for series[i] is points[i].
          */
-        onPointCreated(dygraph: Readonly<Dygraph>, seriesPoint: any, unifiedDataSample: any): any;
+        onPointsCreated_(series: any, points: Point[]): any;
 
         /**
          * Because of performance reasons, the onPointCreated callback was replaced by this method.
@@ -66,7 +74,7 @@ export namespace dygraphs {
          * point of the series. This saves us several method calls as well as several option reads
          * that are done in the onPointCreated.
          */
-        onLineEvaluated(dygraph: Readonly<Dygraph>, seriesPoints: any, dataset: any, setName: any): any;
+        onLineEvaluated(seriesPoints: Point[], axis: object, logscale: boolean): any;
     }
 
     interface PerSeriesOptions {
@@ -421,7 +429,7 @@ export namespace dygraphs {
         dygraph: Dygraph;
     }
 
-    interface Options extends PerSeriesOptions, PerAxisOptions {
+    interface StandaloneOptions {
         /**
          * Set this option to animate the transition between zoom windows. Applies to programmatic
          * and interactive zooms. Note that if you also set a drawCallback, it will be called several
@@ -1051,6 +1059,8 @@ export namespace dygraphs {
         rangeSelectorPlotLineWidth?: number | null | undefined;
     }
 
+    type Options = StandaloneOptions & PerSeriesOptions & PerAxisOptions
+
     interface SeriesProperties {
         name: string;
         column: number;
@@ -1163,6 +1173,7 @@ export namespace dygraphs {
         stopPropagation(): void
     }
 
+    type DestroyHandler = (e: DygraphEvent) => void
     type DataWillUpdateHandler = (e: DygraphEvent) => void;
     type PredrawHandler = (e: DygraphEvent) => void;
 
@@ -1184,6 +1195,7 @@ export namespace dygraphs {
 
     interface RangeSelectorPluginPrototype extends DygraphsPlugin {
         dygraph_: Dygraph
+        activate(dygraphs: Dygraph): PluginHandlers;
         computeCombinedSeriesAndLimits_(): { data: any, yMin: number, yMax: number }
     }
 
@@ -1192,6 +1204,19 @@ export namespace dygraphs {
     interface DygraphsFunctionDataHandler<T extends DataHandler = DataHandler> {
         new(): T
         prototype: T;
+    }
+
+    type AxisOptionView = <T extends keyof PerAxisOptions>(name: T) => PerAxisOptions[T]
+
+    type PluginInstanceType<T> = T extends DygraphsPlugin ? T : T extends DygraphsFunctionPlugin ? InstanceType<T> : never
+
+    type DygraphsPluginType = DygraphsPlugin | DygraphsFunctionPlugin
+
+    interface DygraphsPluginDict<T extends DygraphsPluginType = DygraphsPluginType> {
+        plugin: PluginInstanceType<T>
+        events: unknown
+        options: unknown
+        pluginOptions: unknown
     }
 }
 
@@ -1208,6 +1233,11 @@ export default class Dygraph {
 
     public rawData_: any[];
     public dateWindow_: [number, number];
+    public layout_: dygraphs.Layout
+    public dataHandler_: dygraphs.DataHandler
+    public maindiv_: HTMLElement
+    public file_: dygraphs.Data
+    public plugins_: dygraphs.DygraphsPluginDict[]
 
     static Plugins: {
         Legend: dygraphs.DygraphsFunctionPlugin,
@@ -1228,6 +1258,8 @@ export default class Dygraph {
         ErrorBarsHandler: dygraphs.DygraphsFunctionDataHandler,
         FractionsBarsHandle: dygraphs.DygraphsFunctionDataHandler,
     }
+
+    parseArray_(data: any[]): any[]
 
     /**
      * Returns the zoomed status of the chart for one or both axes.
@@ -1261,7 +1293,8 @@ export default class Dygraph {
      * @param opt_seriesName Series name to get per-series values.
      * @return The value of the option.
      */
-    getOption(name: string, seriesName?: string): any;
+    getOption<K extends keyof dygraphs.Options>(name: K): dygraphs.Options[K];
+    getOption<K extends keyof dygraphs.Options>(name: K, seriesName: string): dygraphs.Options[K];
 
     /**
      * Returns the current rolling period, as set by the user or an option.
@@ -1654,6 +1687,12 @@ export default class Dygraph {
      */
     ready(callback: (g: Dygraph) => any): void;
 
+    /**
+     * @param {string} axis The name of the axis (i.e. 'x', 'y' or 'y2')
+     * @return {...} A function mapping string -> option value
+     */
+    optionsViewForAxis_(axis: dygraphs.Axis): dygraphs.AxisOptionView
+
     // built-in tickers
     static numericLinearTicks: dygraphs.Ticker;
     static numericTicks: dygraphs.Ticker;
@@ -1687,6 +1726,8 @@ export default class Dygraph {
     }
 
     static defaultInteractionModel: any;
+
+    static pickDateTickGranularity: (a: number, b: number, pixels: number, opts: dygraphs.AxisOptionView) => number
 
     static DOTTED_LINE: number[];
     static DASHED_LINE: number[];
