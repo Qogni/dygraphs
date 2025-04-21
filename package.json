@@ -1,6 +1,6 @@
 {
   "name": "@qogni/dygraphs",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "dygraphs is a fast, flexible open source JavaScript charting library.",
   "main": "index.es5",
   "module": "index",
