@@ -47,3 +47,8 @@ expectType<(a: number, b: number, pixels: number, opts: dygraphs.AxisOptionView)
 
 expectType<dygraphs.AxisOptionView>(dygraph.optionsViewForAxis_('x'))
 
+function isRangeSelectorPlugin(dict: dygraphs.DygraphsPluginDict): dict is dygraphs.DygraphsPluginDict<dygraphs.RangeSelectorPlugin> {
+    return dict.plugin instanceof Dygraph.Plugins.RangeSelector
+}
+
+expectType<HTMLCanvasElement | undefined>(dygraph.plugins_.find(isRangeSelectorPlugin)?.plugin.fgcanvas_)

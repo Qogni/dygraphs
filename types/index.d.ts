@@ -1195,6 +1195,7 @@ export namespace dygraphs {
 
     interface RangeSelectorPluginPrototype extends DygraphsPlugin {
         dygraph_: Dygraph
+        fgcanvas_: HTMLCanvasElement
         activate(dygraphs: Dygraph): PluginHandlers;
         computeCombinedSeriesAndLimits_(): { data: any, yMin: number, yMax: number }
     }
